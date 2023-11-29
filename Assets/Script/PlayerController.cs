@@ -10,11 +10,15 @@ public class PlayerController : MonoBehaviour
     private int doubleJump = 0;
     private bool isAttacking;
     private Vector3 angleRotation;
+    private OpenGate gate;
     private bool isInteracting;
+    private AudioSource player;
     [SerializeField]
     private float speed;
     [SerializeField]
     private float jumpForce;
+    [SerializeField]
+    private AudioClip passo;
     [SerializeField]
     private List<GameObject> inventory = new List<GameObject>();
 
@@ -27,6 +31,7 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         angleRotation = new Vector3(0, 90, 0);
         isInteracting = false;
+        player = GetComponent<AudioSource>();
     }
 
     // Update is called once per frame
@@ -47,28 +52,54 @@ public class PlayerController : MonoBehaviour
         if (Input.GetKey(KeyCode.W))
         {
             playerAnimator.SetBool("Walk", true);
+            if (!player.isPlaying)
+            {
+                player.PlayOneShot(passo, 0.6f);
+            }
 
             if (Input.GetKey(KeyCode.W) && playerAnimator.GetBool("WalkBack"))
             {
                 playerAnimator.SetBool("WalkToBack", true);
+                if (!player.isPlaying)
+                {
+                    player.PlayOneShot(passo, 0.6f);
+                }
             }
         }
+      
         else if (Input.GetKey(KeyCode.S))
         {
             playerAnimator.SetBool("WalkBack", true);
+            if (!player.isPlaying)
+            {
+                player.PlayOneShot(passo, 0.6f);
+            }
 
             if (Input.GetKey(KeyCode.S) && playerAnimator.GetBool("Walk"))
             {
                 playerAnimator.SetBool("WalkToBack", false);
+                if (!player.isPlaying)
+                {
+                    player.PlayOneShot(passo, 0.6f);
+                }
             }
         }
+        
         else if (Input.GetKey(KeyCode.A))
         {
             playerAnimator.SetBool("Walk", true);
+            if (!player.isPlaying)
+            {
+                player.PlayOneShot(passo, 0.6f);
+            }
         }
         else if (Input.GetKey(KeyCode.D))
         {
             playerAnimator.SetBool("Walk", true);
+            if (!player.isPlaying)
+            {
+                player.PlayOneShot(passo, 0.6f);
+            }
         }
         else if (Input.GetKey(KeyCode.E))
         {
@@ -99,8 +130,6 @@ public class PlayerController : MonoBehaviour
         {
             isAttacking = false;
         }
-
-
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -113,11 +142,75 @@ public class PlayerController : MonoBehaviour
 
     }
 
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Gate"))
+        {
+            Debug.Log("Colide with door");
+            OpenGate actualGate = other.GetComponent<OpenGate>();
+            gate = actualGate;
+            isInteracting = true;
+        }
+    }
+
+
+
+    private void OnCollisionExit(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Ground"))
+        {
+            playerAnimator.SetBool("IsOnGround", false);
+            isOnGround = false;
+        }
+
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("Gate"))
+        {
+            OpenGate actualGate = other.GetComponent<OpenGate>();
+            Debug.Log("Leaving Gate");
+            if (gate == actualGate)
+            {
+                gate = null;
+                isInteracting = false;
+            }
+        }
+    }
+
     private void JumpMove()
     {
         isOnGround = false;
         rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
     }
+
+    private void InteractToGate()
+    {
+        if (gate)
+        {
+            Debug.Log("Tentando abrir porta");
+            gate.GateOpen();
+
+            if (gate.GateIsLocked())
+            {
+                Debug.Log("Porta Trancada");
+                foreach (GameObject item in inventory)
+                {
+                    Debug.Log("Varrendo Inventário");
+                    if (gate.HasKey(item.name))
+                    {
+                        Debug.Log("Destrancando Porta");
+                        gate.UnlockGate();
+                        inventory.Remove(item);
+                    }
+                }
+
+                gate.GateOpen();
+            }
+        }
+    }
+
 
     private void JumpAnimation()
     {
